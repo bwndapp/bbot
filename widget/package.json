@@ -1,13 +1,12 @@
 {
   "name": "bbot-widget",
   "version": "1.0.0",
-  "description": "bbot as a draggable, always-on-top desktop widget",
+  "description": "bbot as a desktop widget: chat through OpenRouter, a voice from ElevenLabs, a face that acts it out",
   "private": true,
   "type": "commonjs",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "dev-server": "node dev-server.js"
+    "start": "electron ."
   },
   "devDependencies": {
     "electron": "^33.0.0"

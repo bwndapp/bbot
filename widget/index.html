@@ -740,9 +740,9 @@
       // flare near the specular and all but vanish in the shade
       function scratchLayer() {
         // each bot wears its own pattern: the seed is a hash of its
-        // incubator id, so the wear is stable across runs and machines
+        // bot id, so the wear is stable across runs and machines
         let seed = 1337
-        for (const ch of cfg.incubator || '') seed = (Math.imul(seed ^ ch.charCodeAt(0), 16777619) >>> 0) || 1
+        for (const ch of cfg.bot || '') seed = (Math.imul(seed ^ ch.charCodeAt(0), 16777619) >>> 0) || 1
         const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296)
         const LX = -15 // the key light, where the specular sits
         const LY = -19

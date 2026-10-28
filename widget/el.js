@@ -1,5 +1,5 @@
 // ElevenLabs streaming TTS: one stream-input websocket per reply. Text
-// chunks go in as the bwnd deltas arrive; PCM audio chunks come back while
+// chunks go in as the model's deltas arrive; PCM audio chunks come back while
 // the reply is still generating. The caller gets base64 PCM (24kHz mono)
 // through onAudio({b64}) and a final onAudio({done: true}).
 

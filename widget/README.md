@@ -1,28 +1,30 @@
 # bbot desktop widget
 
 The face, off the page: a frameless, transparent, always-on-top Electron window
-that stands in for one of your Tension incubators.
+with an AI behind it. Bring your own [OpenRouter](https://openrouter.ai) key
+to pick any chat model, and optionally an [ElevenLabs](https://elevenlabs.io)
+key for a real voice. Nothing goes through a server of ours.
 
 - **Click the face to chat.** Speech bubbles float above it: streamed replies,
   markdown (code, lists, headings, quotes, links), OG preview cards under
-  links, a thinking timer, scrollable history, a clear button. Threads are the
-  same ones the Tension web UI shows.
-- **Press and move to drag** — it gets scared mid-drag and boings on landing.
+  links, a thinking timer, scrollable history, a clear button.
+- **Press and move to drag**: it gets scared mid-drag and boings on landing.
 - **Eyes follow your cursor** across the whole desktop (the main process polls
   the global cursor position and drives `look()`).
-- **It acts the conversation out** — thinking pose with a thought-trail while
-  a reply is pending, focus during tool calls, a mood read from each reply,
-  a worried shake on errors.
-- **Bots can reach out first.** A DM or alert arrives on the open socket; the
-  widget plays a soft blip and shows a big anime "!" until you click in, then
-  loads that thread.
+- **It acts the conversation out**: a thinking pose with a thought trail
+  while a reply is pending (from the model's reasoning, when it shares it),
+  focus during tool calls, a mood read from each reply, a worried shake on
+  errors.
+- **It talks.** A built-in babble voice, or ElevenLabs streamed as the reply
+  arrives, with the mouth lip-synced to the audio and optional captions.
 - Hover for the other controls: **⤡** drag to resize · **✕** close · **✎**
-  settings — a tabbed panel: *style* (mood gallery of live mini-faces,
-  reactions, colours, fits, size) and *config* (connection, ElevenLabs,
+  settings, a tabbed panel: *style* (mood gallery of live mini-faces,
+  reactions, colours, fits, size) and *config* (OpenRouter, ElevenLabs,
   desktop tools). Everything persists across runs.
+- **Several bots.** Right-click → *New bbot* spawns another, with its own
+  look, voice, model, persona and conversation.
 - **It can use your computer.** Opt in, and the bot searches, lists, reads
-  and opens files in the folders you allow — over the socket it already has,
-  no ports, no tunnel. See *Desktop tools* below.
+  and opens files in the folders you allow. See *Desktop tools* below.
 
 ## Run
 
@@ -35,25 +37,26 @@ npm start
 On Windows, double-clicking `start.cmd` does both. Launching twice focuses the
 running one instead of spawning a twin.
 
-## Connect it to bwnd
+## Set it up
 
-Mint a device key in Tension → Settings → Desktop widgets, then ✎ → config:
-paste the `bbk_…` key, connect, and pick which incubator this bbot stands in
-for. Chat requires the connection — offline sends show an error.
+Open ✎ → config:
 
-For local development without an account, `npm run dev-server` runs an emulator
-of the bwnd socket (streaming, notifications, history) on
-`ws://localhost:8787`; any key is accepted. The protocol lives in `bridge.js`
-(client) and `dev-server.js` (reference server).
+1. **openrouter**: paste a key from [openrouter.ai/keys](https://openrouter.ai/keys).
+   The default model is `openrouter/auto`; type or pick any other model id
+   (`anthropic/…`, `openai/…`, `google/…`). Each bot can override the model
+   and its persona. With no persona set, the bot uses [`soul.md`](soul.md).
+2. **elevenlabs** (optional): paste a key, then pick *ElevenLabs* and a voice
+   per bot in style → voice.
+
+You pay OpenRouter and ElevenLabs directly for what you use.
 
 ## Desktop tools
 
-The bot's brain runs in its incubator container, but it can reach back to
-this machine over the same socket. Turn it on in ✎ → config → desktop and
-pick the folders it may see (Documents, Desktop and Downloads by default).
-Then "find that report from last week" becomes a real search here, and the
-bot hands you the path. Tools are read-only and never leave the chosen
-folders:
+Turn it on in ✎ → config → mcp and pick the folders it may see (Documents,
+Desktop and Downloads by default). The tools are offered to the model with
+every message and run on this machine when it calls them, so "find that
+report from last week" becomes a real search here and the bot hands you the
+path. Tools are read-only and never leave the chosen folders:
 
 | tool | does |
 |---|---|
@@ -62,22 +65,25 @@ folders:
 | `read_file` | the first N chars of a text file (binary formats report size only) |
 | `open_path` | open with the default app, or reveal in the file manager |
 
-What the bot reads travels to its container to be understood — keep private
-folders out of the list. Each use is logged as a quiet line in the chat.
+What the bot reads is sent to the model through OpenRouter to be understood,
+so keep private folders out of the list. Each use is logged as a quiet line in
+the chat and in the panel's activity list.
 
-The frames, for the server side:
+The tools are MCP-shaped (`tools.js`: name, description, input schema, MCP
+content results), so the same set can be served to any MCP client.
 
-```
-widget → server   {type:'tools', tools:[{name, description, input_schema}]}   after every hello; [] withdraws
-server → widget   {type:'tool_request', id, name, input, incubator_id?, conversation_id?}
-widget → server   {type:'tool_result', id, content:[{type:'text', text}], is_error?}
-```
+## How it's built
 
-Tool shape and results are MCP's, so the container can expose the manifest to
-its agent as-is. Requests may arrive mid-turn or unprompted, several at once.
-`dev-server.js` emulates the agent side: a message starting with `find`,
-`read`, `ls` or `open` triggers the matching tool.
+| file | does |
+|---|---|
+| `main.js` | windows, settings, the chat turn, voice routing |
+| `llm.js` | OpenRouter: streaming chat, reasoning, tool-call rounds |
+| `el.js` | ElevenLabs streaming text-to-speech |
+| `brain.js` | reads a mood and a thought out of the model's words |
+| `tools.js` | the desktop tools |
+| `index.html` | the face, its voice and lip-sync |
+| `chat.html` · `settings.html` · `captions.html` | the other windows |
 
-The widget imports `../dist/face.js` straight from this repo — no copy of the
-library, nothing to build. `electron` and `ws` are its only dependencies, local
-to this folder and excluded from the npm package.
+The widget imports `../dist/face.js` straight from this repo: no copy of the
+library, nothing to build. `electron` and `ws` are its only dependencies,
+local to this folder and excluded from the npm package.

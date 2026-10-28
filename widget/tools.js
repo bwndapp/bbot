@@ -1,9 +1,9 @@
-// Desktop tools: what the bot can do on this machine, run here on request
-// from its container over the bwnd socket. Every tool is read-only and
-// scoped to the roots the user allowed in ✎ → config → desktop; a path
-// outside them is refused, not resolved. The manifest is MCP-shaped
-// (name / description / input_schema) so bwnd can hand it to the agent
-// verbatim, and results are MCP content blocks.
+// Desktop tools: what the bot can do on this machine, offered to the model as
+// functions and run here when it calls them. Every tool is read-only and
+// scoped to the roots the user allowed in ✎ → config → mcp; a path outside
+// them is refused, not resolved. The manifest is MCP-shaped (name /
+// description / input_schema) and results are MCP content blocks, so the same
+// tools can be served to any MCP client.
 
 const fs = require('fs')
 const path = require('path')
@@ -222,7 +222,7 @@ const TOOLS = {
   },
 }
 
-// the manifest the bridge announces: MCP tool shape, nothing else
+// the manifest offered to the model: MCP tool shape, nothing else
 const manifest = () =>
   Object.entries(TOOLS).map(([name, t]) => ({ name, description: t.description, input_schema: t.input_schema }))
 

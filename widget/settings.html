@@ -1118,26 +1118,32 @@
           </div>
           <div class="pane" id="pane-config" hidden>
             <div id="subtabs2">
-              <button class="stab active" data-sub2="bwnd">bwnd</button>
+              <button class="stab active" data-sub2="ai">openrouter</button>
               <button class="stab" data-sub2="el">elevenlabs</button>
               <button class="stab" data-sub2="desktop">mcp</button>
               <button class="stab" data-sub2="app">app</button>
             </div>
-            <div class="sub" id="sub2-bwnd">
+            <div class="sub" id="sub2-ai">
             <section>
-              <h2>Connection</h2>
-              <div class="crow"><span class="lbl">server</span><input class="field-input" type="text" id="server" placeholder="wss://bwnd.app/api/v1/incubators/public/bbots/ws" spellcheck="false" /></div>
-              <div class="crow"><span class="lbl">key</span><input class="field-input" type="password" id="token" placeholder="bbk_… (Tension → Settings → Desktop widgets)" spellcheck="false" /></div>
-              <div class="crow" id="botRow" hidden><span class="lbl">bot</span><select id="bot"></select></div>
+              <h2>OpenRouter</h2>
+              <div class="crow"><span class="lbl">key</span><input class="field-input" type="password" id="orKey" placeholder="sk-or-… (openrouter.ai/keys)" spellcheck="false" /></div>
+              <div class="crow"><span class="lbl">default</span><input class="field-input" type="text" id="defModel" list="models" placeholder="openrouter/auto" spellcheck="false" /></div>
               <div class="conn-row">
-                <label class="toggle"><input type="checkbox" id="auto-connect" /> connect on launch</label>
+                <span id="connStatus"><b>no key</b> — chat is disabled until one is set</span>
                 <span style="flex: 1"></span>
-                <button id="go">connect</button>
+                <button id="go">check</button>
               </div>
-              <div class="conn-row"><span id="connStatus"><b>offline</b> — chat is disabled until connected</span></div>
               <div class="conn-row hint">
-                keys are minted at <a href="https://bwnd.app" target="_blank">bwnd.app</a>
+                your key, your models, your bill — the widget talks to
+                <a href="https://openrouter.ai" target="_blank">openrouter.ai</a> directly
               </div>
+            </section>
+            <section>
+              <h2>This bot</h2>
+              <div class="crow"><span class="lbl">name</span><input class="field-input" type="text" id="botName" placeholder="bbot" spellcheck="false" /></div>
+              <div class="crow"><span class="lbl">model</span><input class="field-input" type="text" id="botModel" list="models" placeholder="use the default" spellcheck="false" /></div>
+              <div class="crow" style="align-items: flex-start"><span class="lbl">persona</span><textarea class="field-input" id="botSoul" rows="5" placeholder="leave empty to use soul.md" spellcheck="false" style="resize: vertical; font: inherit"></textarea></div>
+              <datalist id="models"></datalist>
             </section>
             </div>
             <div class="sub" id="sub2-el" hidden>
@@ -1162,7 +1168,7 @@
                     <label class="toggle"><input type="checkbox" id="desktopTools" /></label>
                   </div>
                   <div class="mcp-line" id="mcpLine"></div>
-                  <div class="mcp-sub" id="mcpSub">over the bwnd socket, in reverse — no ports, no tunnel</div>
+                  <div class="mcp-sub" id="mcpSub">offered to the model as tools; they run here, on this machine</div>
                 </div>
               </section>
               <section>
@@ -1177,7 +1183,7 @@
                   <button id="addRoot">add folder…</button>
                 </div>
                 <div class="hint" style="margin-top: 6px">
-                  what it reads goes to the bot's container to be understood — keep private folders out
+                  what it reads is sent to the model through OpenRouter — keep private folders out
                 </div>
               </section>
               <section>
@@ -1193,7 +1199,7 @@
               <section>
                 <h2>Chat</h2>
                 <label class="toggle"><input type="checkbox" id="showFeed" /> show conversation history</label>
-                <div class="hint" style="margin-top: 6px">off = just the entry box; the thread still lives in Tension</div>
+                <div class="hint" style="margin-top: 6px">off = just the entry box; the thread is kept until you clear it</div>
                 <label class="toggle" style="margin-top: 10px"><input type="checkbox" id="captions" /> closed captions</label>
                 <div class="hint" style="margin-top: 6px">the words appear under the bot as it says them — babble and ElevenLabs both</div>
               </section>
@@ -1640,64 +1646,49 @@
       size.value = await window.widget.getSize()
       size.addEventListener('input', () => window.widget.setSize(+size.value))
 
-      // --- config: connection ---
-      $('#server').value = cfg.server || ''
-      $('#token').value = cfg.token || ''
-      $('#auto-connect').checked = !!cfg.autoConnect
-      $('#server').addEventListener('change', () => window.widget.setCfg({ server: $('#server').value.trim() }))
-      $('#token').addEventListener('change', () => window.widget.setCfg({ token: $('#token').value.trim() }))
+      // --- config: OpenRouter + this bot's brain ---
+      $('#orKey').value = cfg.orKey || ''
+      $('#defModel').value = cfg.defaultModel || ''
+      $('#botName').value = cfg.name || ''
+      $('#botModel').value = cfg.model || ''
+      $('#botSoul').value = cfg.soul || ''
+      $('#orKey').addEventListener('change', () => window.widget.setCfg({ orKey: $('#orKey').value.trim() }))
+      $('#defModel').addEventListener('change', () => window.widget.setCfg({ defaultModel: $('#defModel').value.trim() || 'openrouter/auto' }))
+      $('#botName').addEventListener('change', () => window.widget.setCfg({ name: $('#botName').value.trim() || 'bbot' }))
+      $('#botModel').addEventListener('change', () => window.widget.setCfg({ model: $('#botModel').value.trim() }))
+      $('#botSoul').addEventListener('change', () => window.widget.setCfg({ soul: $('#botSoul').value }))
       $('#elKey').value = cfg.elKey || ''
       $('#elKey').addEventListener('change', () => window.widget.setCfg({ elKey: $('#elKey').value.trim() }))
-      $('#auto-connect').addEventListener('change', (e) => window.widget.setCfg({ autoConnect: e.target.checked }))
+
+      // the model picker: OpenRouter's public list, fetched once
+      window.widget.listModels().then((r) => {
+        for (const m of r.models || []) {
+          const o = document.createElement('option')
+          o.value = m.id
+          o.label = m.name
+          $('#models').appendChild(o)
+        }
+      })
 
       let connStatus = 'off'
-      let connUser = null
       function renderConn() {
         $('#tabDot').className = `tabdot ${connStatus}`
-        $('#go').classList.toggle('on', connStatus === 'on' || connStatus === 'connecting')
-        $('#go').textContent = connStatus === 'on' || connStatus === 'connecting' ? 'disconnect' : 'connect'
         $('#connStatus').innerHTML =
           connStatus === 'on'
-            ? `<b>connected</b>${connUser?.email ? ' as ' + connUser.email : ''}`
+            ? '<b>ready</b> — key accepted'
             : connStatus === 'connecting'
-              ? '<b>connecting…</b> retrying until it sticks'
+              ? '<b>checking…</b>'
               : connStatus === 'denied'
-                ? '<b>key rejected</b> — revoke &amp; mint a new one in Tension'
-                : '<b>offline</b> — chat is disabled until connected'
+                ? '<b>key rejected</b> — check it at openrouter.ai/keys'
+                : '<b>no key</b> — chat is disabled until one is set'
       }
-
-      function renderBots(incubators) {
-        const sel = $('#bot')
-        $('#botRow').hidden = !incubators.length
-        sel.replaceChildren()
-        for (const inc of incubators) {
-          const o = document.createElement('option')
-          o.value = inc.id
-          o.textContent = inc.name + (inc.container_running ? '' : ' (asleep)')
-          sel.appendChild(o)
-        }
-        if (incubators.some((i) => i.id === cfg.incubator)) sel.value = cfg.incubator
-      }
-      $('#bot').addEventListener('change', () => window.widget.setCfg({ incubator: $('#bot').value }))
-
       $('#go').addEventListener('click', () => {
-        // commit any un-blurred edits before connecting
-        window.widget.setCfg({ server: $('#server').value.trim(), token: $('#token').value.trim() })
-        if (connStatus === 'on' || connStatus === 'connecting') window.widget.bridgeDisconnect()
-        else window.widget.bridgeConnect()
+        // commit an un-blurred edit, which also re-checks the key
+        window.widget.setCfg({ orKey: $('#orKey').value.trim() })
       })
       window.widget.onBridgeStatus((s) => ((connStatus = s), renderConn()))
-      window.widget.onHello(({ user, incubators }) => {
-        connUser = user
-        renderBots(incubators)
-        renderConn()
-      })
-      const hello = await window.widget.getHello()
-      connStatus = hello.status
-      connUser = hello.user
-      renderBots(hello.incubators || [])
+      connStatus = (await window.widget.getHello()).status
       renderConn()
-      if (hello.status === 'on') window.widget.refreshBots() // roster may have changed
 
       // --- startup ---
       $('#autostart').checked = await window.widget.getAutostart()
@@ -1727,27 +1718,16 @@
       }
       function renderMcp() {
         const st = toolState
-        const live = st.on && st.bridge === 'on' && st.announcedAt > 0
+        const live = st.on && st.bridge === 'on'
         const waiting = st.on && !live
         $('#mcpDot').className = 'mcp-dot' + (live ? ' live' : waiting ? ' waiting' : '')
         $('#mcpState').className = 'mcp-state' + (live ? ' live' : '')
-        $('#mcpState').textContent = !st.on
-          ? 'off'
-          : live
-            ? 'serving'
-            : st.bridge === 'on'
-              ? 'announcing'
-              : st.bridge === 'connecting'
-                ? 'waiting'
-                : 'offline'
-        const who = st.incubators.length ? st.incubators.join(', ') : 'whichever bot binds first'
+        $('#mcpState').textContent = !st.on ? 'off' : live ? 'serving' : 'waiting'
         $('#mcpLine').textContent = !st.on
           ? 'Off. The bot only chats — switch on to let it find files here and hand you paths.'
           : live
-            ? `Serving ${st.tools.length} tools to ${who}. Announced ${ago(st.announcedAt)}.`
-            : st.bridge === 'on'
-              ? `Connected — ${st.tools.length} tools go out to ${who} on the next hello.`
-              : `On. ${st.tools.length} tools will be offered to ${who} once bwnd connects.`
+            ? `Offering ${st.tools.length} tools to the model on every message.`
+            : `On. ${st.tools.length} tools will be offered once an OpenRouter key is set.`
         const list = $('#toolList')
         list.replaceChildren()
         for (const t of st.tools) {
@@ -1773,7 +1753,7 @@
         for (const e of st.log) {
           const row = document.createElement('div')
           row.className = 'tl' + (e.error ? ' bad' : '')
-          row.title = (e.incubator ? `${e.incubator} · ` : '') + (e.detail || e.summary)
+          row.title = (e.bot ? `${e.bot} · ` : '') + (e.detail || e.summary)
           const tt = document.createElement('span')
           tt.className = 'tt'
           tt.textContent = clock(e.at)

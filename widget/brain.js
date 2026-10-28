@@ -1,7 +1,5 @@
-// a bbot's stand-in brain: canned personality + command parsing.
-// The platform hookup replaces exactly one function — reply(text) resolves
-// {text, mood?, react?} — so a WebSocket to an agent slots in here without
-// touching the chat UI or the face choreography.
+// a bbot's face-reading: canned replies for offline play, and the moods and
+// thoughts the face acts out, read from what the model writes.
 
 const EXPRESSIONS = [
   'idle', 'content', 'relieved', 'happy', 'joy', 'excited', 'love', 'pleading',
@@ -68,7 +66,7 @@ const RULES = [
   {
     match: /\b(test ?md|markdown)\b/,
     replies: [
-      '### markdown check\n\nsome **bold**, some *italic*, some ~~regret~~, and `inline code`.\n\n- a list item\n- another with a [link](https://bwnd.app)\n- bare url: https://github.com/bwndapp/bbot\n\n1. ordered\n2. works too\n\n> a wise quote\n\n```js\nconst face = createFace(el)\nface.react("boing")\n```\n\n---\n\nthat is everything i know',
+      '### markdown check\n\nsome **bold**, some *italic*, some ~~regret~~, and `inline code`.\n\n- a list item\n- another with a [link](https://example.com)\n- bare url: https://github.com/bwndapp/bbot\n\n1. ordered\n2. works too\n\n> a wise quote\n\n```js\nconst face = createFace(el)\nface.react("boing")\n```\n\n---\n\nthat is everything i know',
     ],
     mood: 'focus',
   },
@@ -125,8 +123,8 @@ async function reply(text) {
   return { text: pick(f.replies), mood: f.mood, react: f.react }
 }
 
-// Guess a face for a piece of text the platform wrote — the socket carries
-// words, not moods, so the bot reads the room itself.
+// Guess a face for a piece of text the model wrote — it sends words, not
+// moods, so the bot reads the room itself.
 function inferMood(text) {
   const t = String(text).toLowerCase()
   if (/error|fail|sorry|can't|cannot|unable/.test(t)) return { mood: 'worried' }
