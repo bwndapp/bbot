@@ -26,6 +26,31 @@ const GATE = 0.015
 const GAIN = 5
 const CURVE = 1.1
 
+// Frequency bands, as bin indices of a 512-point FFT — roughly 100-750Hz,
+// 750-1900Hz and 1.9-4.1kHz. The *shares* of these are what say which vowel is
+// being made: treble-heavy reads as "ee", bass-heavy as "oo".
+const LO = [1, 8]
+const MID = [8, 20]
+const HI = [20, 44]
+
+// How fast the vowel shape follows the sound. Slower than the jaw on purpose —
+// a mouth that changed shape every frame would buzz.
+const TONE_SMOOTH = 0.35
+
+const clamp01 = (n) => (n < 0 ? 0 : n > 1 ? 1 : n)
+const band = ([from, to], bins) => {
+  let sum = 0
+  for (let i = from; i < to && i < bins.length; i++) sum += bins[i]
+  return sum
+}
+
+/** Treble and bass shares of a spectrum, as the mouth wants them. */
+function shares(bins) {
+  const lo = band(LO, bins)
+  const total = lo + band(MID, bins) + band(HI, bins) || 1
+  return { wide: band(HI, bins) / total, round: lo / total }
+}
+
 /** True for anything we can hand to createMediaElementSource. */
 const isMedia = (x) => typeof HTMLMediaElement !== 'undefined' && x instanceof HTMLMediaElement
 const isStream = (x) => typeof MediaStream !== 'undefined' && x instanceof MediaStream
@@ -79,6 +104,9 @@ export function listen(source, face, options = {}) {
   const analyser = ctx.createAnalyser()
   analyser.fftSize = FFT
   const wave = new Uint8Array(analyser.fftSize)
+  const spectrum = new Uint8Array(analyser.frequencyBinCount)
+  let wide = 0
+  let round = 0
 
   let node
   if (isMedia(source)) node = ctx.createMediaElementSource(source)
@@ -113,9 +141,18 @@ export function listen(source, face, options = {}) {
     const rms = Math.sqrt(sum / wave.length)
     const level = rms < gate ? 0 : Math.min(1, Math.pow(rms * gain, curve))
 
-    // No smoothing here: the face springs `talk` internally, so damping it
-    // twice reads as a delay between the sound and the mouth.
-    face.talk(level)
+    // Spectral colour, only while there is something to colour. Held between
+    // sounds rather than reset, so the mouth doesn't snap flat between words.
+    if (level > 0) {
+      analyser.getByteFrequencyData(spectrum)
+      const s = shares(spectrum)
+      wide += (s.wide - wide) * TONE_SMOOTH
+      round += (s.round - round) * TONE_SMOOTH
+    }
+
+    // No smoothing of the level here: the face handles the attack and release
+    // itself, and damping it twice reads as a delay between sound and mouth.
+    face.talk(level, { wide, round })
     onLevel?.(level)
   }
   tick()
@@ -172,6 +209,129 @@ export function levelAt(buffer, time, options = {}) {
 
   const rms = Math.sqrt(sum / count)
   return rms < gate ? 0 : Math.min(1, Math.pow(rms * gain, curve))
+}
+
+// --- rendering ------------------------------------------------------------
+//
+// Everything above needs the audio to be *playing*. Rendering a clip has no
+// sound card and no real time, so it needs the same measurements taken from
+// the samples directly.
+
+/** In-place radix-2 FFT. Small enough to inline rather than take a dependency. */
+function fft(re, im) {
+  const n = re.length
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1
+    for (; j & bit; bit >>= 1) j ^= bit
+    j ^= bit
+    if (i < j) {
+      ;[re[i], re[j]] = [re[j], re[i]]
+      ;[im[i], im[j]] = [im[j], im[i]]
+    }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = (-2 * Math.PI) / len
+    const wr = Math.cos(ang)
+    const wi = Math.sin(ang)
+    for (let i = 0; i < n; i += len) {
+      let cr = 1
+      let ci = 0
+      for (let k = 0; k < len / 2; k++) {
+        const a = i + k
+        const b = a + len / 2
+        const tr = re[b] * cr - im[b] * ci
+        const ti = re[b] * ci + im[b] * cr
+        re[b] = re[a] - tr
+        im[b] = im[a] - ti
+        re[a] += tr
+        im[a] += ti
+        const nr = cr * wr - ci * wi
+        ci = cr * wi + ci * wr
+        cr = nr
+      }
+    }
+  }
+}
+
+// Web Audio's own numbers, so an offline spectrum lands on the same 0..255
+// scale a live AnalyserNode would report for the same sound.
+const MIN_DB = -100
+const MAX_DB = -30
+const FFT_SMOOTH = 0.8
+
+/**
+ * The offline counterpart of `listen`: level and vowel shape, read off decoded
+ * samples at any point in time.
+ *
+ * Stateful, because both the spectrum and the mouth shape are smoothed across
+ * frames — call `at()` in playback order, once per frame, the way a recorder
+ * does. That is what makes a rendered clip move like a live one rather than
+ * jittering between independent measurements.
+ *
+ *   const voice = analyseVoice(audioBuffer)
+ *   const { level, wide, round } = voice.at(t)
+ *   face.talk(level, { wide, round })
+ *
+ * @param buffer   an AudioBuffer, e.g. from ctx.decodeAudioData(mp3)
+ * @param options  gate, gain, curve — as listen()
+ */
+export function analyseVoice(buffer, options = {}) {
+  const { gate = GATE, gain = GAIN, curve = CURVE } = options
+
+  const bins = new Float32Array(FFT / 2) // smoothed magnitudes, as Web Audio keeps them
+  const bytes = new Uint8Array(FFT / 2)
+  const re = new Float64Array(FFT)
+  const im = new Float64Array(FFT)
+
+  // Blackman, the window an AnalyserNode applies before its transform.
+  const win = new Float64Array(FFT)
+  for (let i = 0; i < FFT; i++) {
+    const x = (2 * Math.PI * i) / (FFT - 1)
+    win[i] = 0.42 - 0.5 * Math.cos(x) + 0.08 * Math.cos(2 * x)
+  }
+
+  let wide = 0
+  let round = 0
+
+  return {
+    at(time) {
+      // One trailing block of samples answers both questions, which is what an
+      // AnalyserNode does — and why this does not reuse `levelAt`, whose window
+      // is centred on `time` and so half in the future. Reading the block that
+      // has just played is what keeps this in step with a live analyser.
+      const rate = buffer.sampleRate
+      const end = Math.round(time * rate)
+      const start = end - FFT
+      const ch = buffer.getChannelData(0)
+      let sum = 0
+      for (let i = 0; i < FFT; i++) {
+        const at = start + i
+        const v = at >= 0 && at < buffer.length ? ch[at] : 0
+        sum += v * v
+        re[i] = v * win[i]
+        im[i] = 0
+      }
+      const rms = Math.sqrt(sum / FFT)
+      const level = rms < gate ? 0 : Math.min(1, Math.pow(rms * gain, curve))
+
+      if (level > 0) {
+        fft(re, im)
+
+        for (let i = 0; i < FFT / 2; i++) {
+          const mag = Math.sqrt(re[i] * re[i] + im[i] * im[i]) / FFT
+          bins[i] = FFT_SMOOTH * bins[i] + (1 - FFT_SMOOTH) * mag
+          const db = 20 * Math.log10(bins[i] || 1e-12)
+          bytes[i] = clamp01((db - MIN_DB) / (MAX_DB - MIN_DB)) * 255
+        }
+
+        const s = shares(bytes)
+        wide += (s.wide - wide) * TONE_SMOOTH
+        round += (s.round - round) * TONE_SMOOTH
+      }
+
+      return { level, wide, round }
+    },
+  }
 }
 
 export default listen

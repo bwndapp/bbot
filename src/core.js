@@ -33,6 +33,9 @@ const G = {
   pupilR: 4.6,
   pupilTravel: 4.2,
   mouthY: 20,
+  // Seconds of quiet before a speaking face goes back to wearing its
+  // expression. Longer than the gap between words, shorter than a pause.
+  talkHold: 0.5,
   mouthW: 14,
 }
 
@@ -213,13 +216,29 @@ export function createFace(host, options = {}) {
   // so the mouth can ride the sphere the same way the eyes do.
   let mouth = null
   let mouthOpen = null
+  let mouthTalk = null
   let mouthGroup = null
+
+  // Speech shape, smoothed here rather than by a spring. Fast attack and a
+  // slower release is what makes a syllable read as a flap instead of a
+  // flicker, and a spring overshoots into a wobble at exactly the rate people
+  // talk at.
+  let mOpen = 0
+  let mVis = 0
+  let mSilent = 99 // seconds since the last sound, to hold the mode across gaps
+  let mMode = 0    // 0 = the expression's mouth, 1 = the speaking one. Never both.
+  let mWide = 0   // treble share of the voice — "ee"-ness
+  let mRound = 0  // bass share — "oo"-ness
   if (opt.mouth) {
     mouthGroup = svg('g', {})
     mouth = svg('path', { class: 'bwf-mouth' })
     mouthOpen = svg('ellipse', { class: 'bwf-mouth-open', cy: 2, rx: 7, ry: 0 })
+    // A speaking mouth is its own shape, not the expression's mouth stretched.
+    // It sits on top and fades in with the voice.
+    mouthTalk = svg('path', { class: 'bwf-mouth-talk', opacity: 0 })
     mouthGroup.appendChild(mouthOpen)
     mouthGroup.appendChild(mouth)
+    mouthGroup.appendChild(mouthTalk)
     skin.appendChild(mouthGroup)
   }
 
@@ -423,9 +442,33 @@ export function createFace(host, options = {}) {
 
     if (mouth) {
       const curve = shape.mouth.x
-      // Speech opens the mouth over the expression — enough to clearly flap,
-      // not so much that every word is a shout.
-      const open = clamp(Math.max(shape.open.x, talk * 0.85), 0, 1)
+
+      // Per-frame lerps, corrected for the frame we actually got: these
+      // constants are tuned at 60fps, and a clip recorded at 30 would
+      // otherwise flap at half the speed.
+      const step = (rate) => 1 - Math.pow(1 - rate, Math.min(dt, 0.1) * 60)
+      const target = talk * 0.9
+      mOpen += (target - mOpen) * step(target > mOpen ? 0.5 : 0.22)
+      const sounding = talk > 0.03 || mOpen > 0.05
+      mVis += ((sounding ? 1 : 0) - mVis) * step(sounding ? 0.28 : 0.1)
+
+      // A face is either speaking or wearing an expression, never a blend of
+      // the two — a smile showing through a spoken vowel is the thing that
+      // reads as wrong. The hold is what makes that stable: gaps between words
+      // are a few hundred milliseconds, so without it the expression's mouth
+      // would flash back between every syllable.
+      mSilent = sounding ? 0 : mSilent + dt
+      const speaking = mSilent < G.talkHold ? 1 : 0
+      // Instant on the way in, slow on the way out. Ramping in would mean a
+      // couple of frames where a half-faded smile sits behind a half-faded
+      // vowel, which is the whole problem; the speaking mouth fades up from the
+      // bare head instead. Coming back is gentle, so an utterance ending does
+      // not snap a grin on.
+      mMode += (speaking - mMode) * step(speaking > mMode ? 1 : 0.06)
+
+      // The expression's own mouth gives way to the speaking one rather than
+      // both being drawn at half strength, which reads as a smudge.
+      const open = clamp(shape.open.x, 0, 1)
       const w = G.mouthW
 
       const m = project(0, G.mouthY, cosYaw, sinYaw, cosPitch, sinPitch)
@@ -444,14 +487,37 @@ export function createFace(host, options = {}) {
       // gone entirely by ~40% open, leaving the ellipse to do the talking.
       const cw = Math.max(0.5, w * (1 - open * 1.6))
       mouth.setAttribute('d', `M ${-cw.toFixed(2)} 0 Q 0 ${(curve * 11).toFixed(2)} ${cw.toFixed(2)} 0`)
-      mouth.setAttribute('opacity', clamp(1 - open * 2.5, 0, 1).toFixed(3))
+      // ...and fades out entirely as the speaking mouth arrives. The widget
+      // has no expression mouth to collide with; ours does, and two mouths at
+      // once is exactly the smudge the crossfade below was written to avoid.
+      mouth.setAttribute('opacity', (clamp(1 - open * 2.5, 0, 1) * (1 - mMode)).toFixed(3))
       mouthOpen.setAttribute('rx', (6.5 + open * 3.2).toFixed(2))
       mouthOpen.setAttribute('ry', (open * 9.5).toFixed(2))
       // Full ink, always: at ry 0 it is invisible anyway, so height alone says
       // how open the mouth is. Fading it too meant a half-open mouth was a
       // half-transparent ellipse under a half-transparent curve — which reads as
       // a smudge, and talking sits in that range constantly.
-      mouthOpen.setAttribute('opacity', '1')
+      mouthOpen.setAttribute('opacity', (1 - mMode).toFixed(3))
+
+      // Four shapes, blended by the sound itself: bright audio pulls WIDE
+      // (corners out, shallow — "ee"), dark audio pulls ROUND (a small "o"),
+      // loud mids drop the jaw OPEN ("ah"), and silence closes it. Note the
+      // width *shrinks* as the jaw drops, which is what stops a loud syllable
+      // reading as a letterbox.
+      mouthTalk.setAttribute('opacity', mVis.toFixed(3))
+      if (mVis >= 0.002) {
+        const wide = clamp((mWide - 0.16) * 3.2, 0, 1)
+        const round = clamp((mRound - 0.48) * 2.6, 0, 1)
+        const mw = (11.5 - mOpen * 3.2) * (1 + wide * 0.35 - round * 0.42)
+        const md = (1.6 + mOpen * 15) * (1 - wide * 0.45 + round * 0.12)
+        const tc = 1.6 - wide * 1.1
+        mouthTalk.setAttribute(
+          'd',
+          `M ${(-mw).toFixed(2)} 0 Q 0 ${tc.toFixed(2)} ${mw.toFixed(2)} 0` +
+            ` Q ${mw.toFixed(2)} ${md.toFixed(2)} 0 ${md.toFixed(2)}` +
+            ` Q ${(-mw).toFixed(2)} ${md.toFixed(2)} ${(-mw).toFixed(2)} 0 Z`,
+        )
+      }
     }
   }
 
@@ -465,8 +531,18 @@ export function createFace(host, options = {}) {
 
     // Cartoon lip-sync: 0..1 speech energy. The mouth opens on top of the
     // expression, and the head bobs and squashes like it means it.
-    talk(level) {
+    //
+    // `tone` is optional and shapes the mouth rather than just opening it:
+    // `wide` is the treble share of the sound and `round` the bass share, both
+    // 0..1, both already smoothed by whoever measured them. Give it those and a
+    // vowel reads as a vowel; leave it out and you get the jaw alone.
+    // @bwnd/bbot/talk measures both for you.
+    talk(level, tone) {
       talkS.to = clamp(level, 0, 1)
+      if (tone) {
+        if (typeof tone.wide === 'number') mWide = tone.wide
+        if (typeof tone.round === 'number') mRound = tone.round
+      }
       return api
     },
 

@@ -1,0 +1,6 @@
+{"type": "face.state", "state": "working", "label": "Searching your files"}
+{"type": "face.express", "expression": "worried", "label": "That file is locked"}
+{"type": "face.react", "reaction": "nod"}
+{"type": "face.look", "x": 0.6, "y": -0.3, "ms": 900}
+{"type": "face.speak", "text": "Done, three files moved."}
+{"type": "face.mouth", "level": 0.7, "wide": 0.2, "round": 0.5}

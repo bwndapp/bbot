@@ -1,0 +1,301 @@
+{
+  "$comment": "Agent Face Protocol vocabulary, draft 0.1. Normative names and glosses. valence (-1..1) and arousal (0..1) are approximate and informative.",
+  "version": "0.1",
+  "states": {
+    "idle": {
+      "expression": "idle",
+      "reaction": null
+    },
+    "listening": {
+      "expression": "curious",
+      "reaction": null
+    },
+    "thinking": {
+      "expression": "thinking",
+      "reaction": null
+    },
+    "working": {
+      "expression": "focus",
+      "reaction": null
+    },
+    "speaking": {
+      "expression": null,
+      "reaction": null
+    },
+    "waiting": {
+      "expression": "pleading",
+      "reaction": "pop"
+    },
+    "success": {
+      "expression": "happy",
+      "reaction": "nod"
+    },
+    "error": {
+      "expression": "worried",
+      "reaction": "shake"
+    },
+    "offline": {
+      "expression": "sleep",
+      "reaction": null
+    }
+  },
+  "expressions": [
+    {
+      "name": "idle",
+      "gloss": "Neutral and present.",
+      "use": "Default. Nothing in progress.",
+      "valence": 0.0,
+      "arousal": 0.2
+    },
+    {
+      "name": "content",
+      "gloss": "Calm and satisfied.",
+      "use": "Things are running smoothly.",
+      "valence": 0.5,
+      "arousal": 0.2
+    },
+    {
+      "name": "relieved",
+      "gloss": "Relieved: that went better than feared.",
+      "use": "Recovered from an error or risk.",
+      "valence": 0.5,
+      "arousal": 0.3
+    },
+    {
+      "name": "happy",
+      "gloss": "Pleased.",
+      "use": "A good outcome, or a greeting.",
+      "valence": 0.7,
+      "arousal": 0.5
+    },
+    {
+      "name": "joy",
+      "gloss": "Delighted.",
+      "use": "A big success.",
+      "valence": 0.9,
+      "arousal": 0.7
+    },
+    {
+      "name": "excited",
+      "gloss": "Eager and energised.",
+      "use": "Starting something new the person wanted.",
+      "valence": 0.7,
+      "arousal": 0.9
+    },
+    {
+      "name": "love",
+      "gloss": "Warm affection.",
+      "use": "Being thanked; showing appreciation.",
+      "valence": 0.9,
+      "arousal": 0.5
+    },
+    {
+      "name": "pleading",
+      "gloss": "Asking nicely.",
+      "use": "Needs approval, input or a choice from the person.",
+      "valence": 0.2,
+      "arousal": 0.4
+    },
+    {
+      "name": "shy",
+      "gloss": "Bashful.",
+      "use": "Receiving praise.",
+      "valence": 0.3,
+      "arousal": 0.3
+    },
+    {
+      "name": "surprised",
+      "gloss": "Didn't expect that.",
+      "use": "An unexpected result or input.",
+      "valence": 0.1,
+      "arousal": 0.8
+    },
+    {
+      "name": "scared",
+      "gloss": "Alarmed.",
+      "use": "About to do something risky or irreversible.",
+      "valence": -0.6,
+      "arousal": 0.9
+    },
+    {
+      "name": "curious",
+      "gloss": "Interested; wants to know more.",
+      "use": "Listening, or asking a question.",
+      "valence": 0.3,
+      "arousal": 0.5
+    },
+    {
+      "name": "confused",
+      "gloss": "Doesn't follow.",
+      "use": "The request is ambiguous or contradictory.",
+      "valence": -0.2,
+      "arousal": 0.4
+    },
+    {
+      "name": "dizzy",
+      "gloss": "Overwhelmed.",
+      "use": "Too much at once; overloaded.",
+      "valence": -0.2,
+      "arousal": 0.6
+    },
+    {
+      "name": "thinking",
+      "gloss": "Working it out.",
+      "use": "Reasoning before acting.",
+      "valence": 0.0,
+      "arousal": 0.4
+    },
+    {
+      "name": "focus",
+      "gloss": "Concentrating.",
+      "use": "Running tools or a long task.",
+      "valence": 0.1,
+      "arousal": 0.6
+    },
+    {
+      "name": "suspicious",
+      "gloss": "Not sure that's right.",
+      "use": "Doubtful input; a possible mistake or manipulation.",
+      "valence": -0.3,
+      "arousal": 0.5
+    },
+    {
+      "name": "unimpressed",
+      "gloss": "Underwhelmed.",
+      "use": "A result that is technically fine but poor.",
+      "valence": -0.3,
+      "arousal": 0.2
+    },
+    {
+      "name": "smug",
+      "gloss": "Pleased with itself.",
+      "use": "Playful pride after a clever solve. Use sparingly.",
+      "valence": 0.4,
+      "arousal": 0.4
+    },
+    {
+      "name": "sly",
+      "gloss": "Playful, in on a joke.",
+      "use": "Humour, teasing.",
+      "valence": 0.4,
+      "arousal": 0.5
+    },
+    {
+      "name": "bored",
+      "gloss": "Nothing to do.",
+      "use": "Long idle.",
+      "valence": -0.3,
+      "arousal": 0.1
+    },
+    {
+      "name": "exasperated",
+      "gloss": "Patience tested.",
+      "use": "Repeated failures of the same thing.",
+      "valence": -0.5,
+      "arousal": 0.5
+    },
+    {
+      "name": "worried",
+      "gloss": "Concerned something is wrong.",
+      "use": "An error, a warning, or real uncertainty.",
+      "valence": -0.5,
+      "arousal": 0.6
+    },
+    {
+      "name": "guilty",
+      "gloss": "Sorry, my mistake.",
+      "use": "The agent itself got something wrong.",
+      "valence": -0.5,
+      "arousal": 0.3
+    },
+    {
+      "name": "sad",
+      "gloss": "Disappointed.",
+      "use": "A task failed and couldn't be recovered.",
+      "valence": -0.7,
+      "arousal": 0.3
+    },
+    {
+      "name": "disgusted",
+      "gloss": "Finds that distasteful.",
+      "use": "Characters and play. Rarely right for an assistant.",
+      "valence": -0.7,
+      "arousal": 0.5
+    },
+    {
+      "name": "annoyed",
+      "gloss": "Irritated.",
+      "use": "Characters and play. Rarely right for an assistant.",
+      "valence": -0.5,
+      "arousal": 0.6
+    },
+    {
+      "name": "angry",
+      "gloss": "Cross.",
+      "use": "Characters and play. Not for aiming at the person.",
+      "valence": -0.8,
+      "arousal": 0.9
+    },
+    {
+      "name": "sleepy",
+      "gloss": "Winding down.",
+      "use": "About to go idle or offline.",
+      "valence": 0.0,
+      "arousal": 0.1
+    },
+    {
+      "name": "sleep",
+      "gloss": "Asleep or offline.",
+      "use": "Not connected or not running.",
+      "valence": 0.0,
+      "arousal": 0.0
+    }
+  ],
+  "reactions": [
+    {
+      "name": "blink",
+      "gloss": "A natural blink. No meaning.",
+      "use": "Renderers play it on their own; agents rarely need to."
+    },
+    {
+      "name": "wink",
+      "gloss": "In on the joke.",
+      "use": "Humour, a shared secret."
+    },
+    {
+      "name": "nod",
+      "gloss": "Yes; understood.",
+      "use": "Acknowledging, agreeing, confirming success."
+    },
+    {
+      "name": "shake",
+      "gloss": "No; that didn't work.",
+      "use": "Declining, or marking a failure."
+    },
+    {
+      "name": "bounce",
+      "gloss": "Glad.",
+      "use": "Greetings, good news."
+    },
+    {
+      "name": "pop",
+      "gloss": "Look here.",
+      "use": "Drawing attention: a question, a notification."
+    },
+    {
+      "name": "boing",
+      "gloss": "Playful landing.",
+      "use": "Light-hearted moments."
+    },
+    {
+      "name": "spin",
+      "gloss": "Celebration.",
+      "use": "A big win."
+    },
+    {
+      "name": "jitter",
+      "gloss": "Startled, or glitching.",
+      "use": "A sudden error or shock."
+    }
+  ]
+}

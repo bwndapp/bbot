@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bwndapp/bbot/blob/main/spec/message.schema.json",
+  "title": "Agent Face Protocol message, draft 0.1",
+  "description": "Renderers must ignore unknown types and fields, so additional properties are allowed.",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "face.state"
+        },
+        "state": {
+          "enum": [
+            "idle",
+            "listening",
+            "thinking",
+            "working",
+            "speaking",
+            "waiting",
+            "success",
+            "error",
+            "offline"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Why, in the agent's words. Announced in place of the gloss."
+        }
+      },
+      "required": [
+        "type",
+        "state"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "face.express"
+        },
+        "expression": {
+          "enum": [
+            "idle",
+            "content",
+            "relieved",
+            "happy",
+            "joy",
+            "excited",
+            "love",
+            "pleading",
+            "shy",
+            "surprised",
+            "scared",
+            "curious",
+            "confused",
+            "dizzy",
+            "thinking",
+            "focus",
+            "suspicious",
+            "unimpressed",
+            "smug",
+            "sly",
+            "bored",
+            "exasperated",
+            "worried",
+            "guilty",
+            "sad",
+            "disgusted",
+            "annoyed",
+            "angry",
+            "sleepy",
+            "sleep"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Why, in the agent's words. Announced in place of the gloss."
+        }
+      },
+      "required": [
+        "type",
+        "expression"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "face.react"
+        },
+        "reaction": {
+          "enum": [
+            "blink",
+            "wink",
+            "nod",
+            "shake",
+            "bounce",
+            "pop",
+            "boing",
+            "spin",
+            "jitter"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "reaction"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "face.look"
+        },
+        "x": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type",
+        "x",
+        "y"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "face.speak"
+        },
+        "text": {
+          "type": "string"
+        },
+        "audio": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "face.mouth"
+        },
+        "level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "wide": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "round": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "type",
+        "level"
+      ]
+    }
+  ]
+}

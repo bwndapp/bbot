@@ -45,6 +45,10 @@
   stroke-linecap: round;
 }
 
+.bwface .bwf-mouth-talk {
+  fill: var(--face-ink);
+}
+
 .bwface .bwf-mouth-open {
   fill: var(--face-ink, #f7f9f9);
 }

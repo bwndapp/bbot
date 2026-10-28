@@ -18,6 +18,7 @@
   "files": [
     "dist",
     "src",
+    "spec",
     "README.md",
     "LICENSE"
   ],
@@ -30,7 +31,8 @@
   "scripts": {
     "build": "node build.mjs",
     "prepublishOnly": "node build.mjs",
-    "demo": "npx --yes http-server . -p 8080 -c-1"
+    "demo": "npx --yes http-server . -p 8080 -c-1",
+    "test": "node --test test/*.test.mjs"
   },
   "peerDependencies": {
     "react": ">=17"
@@ -53,7 +55,11 @@
     "avatar",
     "mascot",
     "spring",
-    "react"
+    "react",
+    "agent",
+    "ai-agent",
+    "emotion",
+    "mcp"
   ],
   "repository": {
     "type": "git",

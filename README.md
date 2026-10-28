@@ -228,12 +228,32 @@ const stop = listen(document.querySelector('audio'), face)
 `listen` takes an `<audio>`/`<video>`, a `MediaStream` (a mic, a WebRTC track)
 or an `AudioNode` you have already wired up, and returns a `stop()`.
 
-For rendering rather than playback there is `levelAt(audioBuffer, time)`, which
-reads the level straight off decoded samples. Sync then follows the frame's own
+It measures the sound's colour too, and passes it on as `talk(level, { wide,
+round })` — treble share and bass share. Those pick the mouth shape: bright
+audio goes wide and shallow ("ee"), dark audio small and round ("oo"), loud mids
+drop the jaw ("ah"). `talk(level)` on its own just opens and shuts.
+
+For rendering rather than playback there is `analyseVoice(audioBuffer)`, whose
+`.at(time)` returns `{ level, wide, round }`. Sync then follows the frame's own
 timestamp rather than whatever the sound card is doing, which is exact even if
-the encoder stutters — and it works where there is no audio device at all.
+the encoder stutters — and it works where there is no audio device at all. It
+tracks a live AnalyserNode to within 0.004.
 
 ## For agents
+
+bbot is the reference renderer for the **[Agent Face Protocol](spec/)**, an
+open format for an AI agent to show what it's doing and how it feels about it:
+a state (`thinking`, `working`, `waiting`, `error`…), one of 30 expressions,
+a reaction, or speech with lip-sync. Every expression has a plain-language
+gloss, so the same signal works as a face, a caption or screen-reader text.
+
+```json
+{ "type": "face.state", "state": "working", "label": "Searching your files" }
+```
+
+The desktop widget in [`widget/`](widget/) puts this on your desktop: chat
+with any model through OpenRouter, a voice from ElevenLabs, and a face that
+acts the conversation out.
 
 Machine-readable docs are served next to the library, so an agent can work out
 how to use it without a human in the loop:
@@ -281,6 +301,11 @@ The face itself is an original implementation. The sphere projection, the lid
 system, and the spring model were written from scratch for this library.
 
 Built in the open in a [bwnd](https://bwnd.app) incubator.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md) and
+the [Code of Conduct](CODE_OF_CONDUCT.md). Security issues: [SECURITY.md](SECURITY.md).
 
 ## Licence
 
