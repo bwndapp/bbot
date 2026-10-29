@@ -4,10 +4,12 @@
 
 # bbot
 
-**A small, friendly face you can drop into a web page.**
+**A face for AI agents.**
 
-It follows your cursor, blinks on its own, and glances around when you leave it
-alone. 30 moods, nine one-shot reactions, **4.8 kB gzipped**, no dependencies.
+It shows what an agent is doing and how it feels about it, in a way people read
+at a glance: thinking, working, worried, pleased. It follows your cursor, blinks
+on its own, and lip-syncs when the agent speaks. 30 moods, nine one-shot
+reactions, **4.8 kB gzipped**, no dependencies.
 
 ### [→ Try it live at bbot.bwnd.app](https://bbot.bwnd.app)
 

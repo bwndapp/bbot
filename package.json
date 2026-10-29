@@ -1,7 +1,7 @@
 {
   "name": "@bwnd/bbot",
-  "version": "0.6.0",
-  "description": "A small, friendly animated face for web pages. Eyes that follow your cursor, 30 moods, 9 reactions. 3.7 kB, no dependencies.",
+  "version": "0.6.1",
+  "description": "A face for AI agents: 30 expressions people read at a glance, 9 reactions, lip-synced speech. Reference renderer for the Agent Face Protocol. No dependencies.",
   "type": "module",
   "license": "MIT",
   "main": "./dist/face.js",
