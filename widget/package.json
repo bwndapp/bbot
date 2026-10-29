@@ -1,7 +1,7 @@
 {
   "name": "bbot-widget",
   "version": "1.0.0",
-  "description": "bbot as a desktop widget: chat through OpenRouter, a voice from ElevenLabs, a face that acts it out",
+  "description": "A desktop face for your AI agent: any model via OpenRouter, a voice from ElevenLabs, and a face that shows what it is doing and feeling",
   "private": true,
   "type": "commonjs",
   "main": "main.js",

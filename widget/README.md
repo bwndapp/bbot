@@ -1,7 +1,11 @@
 # bbot desktop widget
 
-The face, off the page: a frameless, transparent, always-on-top Electron window
-with an AI behind it. Bring your own [OpenRouter](https://openrouter.ai) key
+A desktop face for your AI agent. It sits on top of everything as a small,
+frameless window and shows what the agent is doing and how it feels about it:
+thinking, working, pleased, worried. It talks, too, with a mouth that moves to
+the words.
+
+Bring your own [OpenRouter](https://openrouter.ai) key
 to pick any chat model, and optionally an [ElevenLabs](https://elevenlabs.io)
 key for a real voice. Nothing goes through a server of ours.
 
